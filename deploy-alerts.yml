@@ -2,49 +2,15 @@
 - name: Configure Prometheus Alert Rules
   hosts: prometheus_servers
   tasks:
-    - name: Create alert_rules.yml
+    - name: Copy alert_rules.yml to server
       copy:
+        src: alert_rules.yml
         dest: /etc/prometheus/alert_rules.yml
-        content: |
-          groups:
-            - name: node_alerts
-              rules:
-                - alert: InstanceDown
-                  expr: up{job="node_exporter"} == 0
-                  for: 30s
-                  labels:
-                    severity: critical
-                  annotations:
-                    summary: "{% raw %}Node Exporter down on {{ $labels.instance }}{% endraw %}"
-                    description: "{% raw %}{{ $labels.instance }} has been unreachable for more than 30 seconds.{% endraw %}"
 
-                - alert: HighCpuLoad
-                  expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
-                  for: 1m
-                  labels:
-                    severity: warning
-                  annotations:
-                    summary: "{% raw %}High CPU usage on {{ $labels.instance }}{% endraw %}"
-                    description: "{% raw %}CPU utilization on {{ $labels.instance }} exceeded 80%.{% endraw %}"
-
-    - name: Update prometheus.yml to include rule_files
+    - name: Copy prometheus.yml to server
       copy:
+        src: prometheus.yml
         dest: /etc/prometheus/prometheus.yml
-        content: |
-          global:
-            scrape_interval: 15s
-            evaluation_interval: 15s
-
-          rule_files:
-            - /etc/prometheus/alert_rules.yml
-
-          scrape_configs:
-            - job_name: 'node_exporter'
-              static_configs:
-                - targets:
-                  - '192.168.69.201:9100'
-                  - '192.168.69.202:9100'
-                  - '192.168.69.203:9100'
 
     - name: Restart Prometheus service
       systemd:
