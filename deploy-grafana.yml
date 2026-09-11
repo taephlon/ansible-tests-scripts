@@ -1,42 +1,46 @@
 ---
-- name: Deploy Node Exporter to Monitored Nodes
-  hosts: monitored_nodes
+- name: Deploy and Configure Grafana
+  hosts: prometheus_servers
   tasks:
-    - name: Download and extract Node Exporter
-      unarchive:
-        src: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
-        dest: /tmp/
-        remote_src: yes
+    - name: Download Grafana deb package
+      get_url:
+        url: https://dl.grafana.com/enterprise/release/grafana-enterprise_10.0.3_amd64.deb
+        dest: /tmp/grafana.deb
+        mode: '0644'
 
-    - name: Move binary to /usr/local/bin
-      copy:
-        src: /tmp/node_exporter-1.7.0.linux-amd64/node_exporter
-        dest: /usr/local/bin/node_exporter
+    - name: Install Grafana package
+      apt:
+        deb: /tmp/grafana.deb
+        state: present
+
+    - name: Ensure provisioning datasources directory exists
+      file:
+        path: /etc/grafana/provisioning/datasources
+        state: directory
+        owner: root
+        group: grafana
         mode: '0755'
-        remote_src: yes
 
-    - name: Create systemd service definition
+    - name: Provision Prometheus Datasource
       copy:
-        dest: /etc/systemd/system/node_exporter.service
+        dest: /etc/grafana/provisioning/datasources/prometheus.yaml
+        owner: root
+        group: grafana
+        mode: '0640'
         content: |
-          [Unit]
-          Description=Prometheus Node Exporter
-          After=network.target
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              type: prometheus
+              access: proxy
+              url: http://localhost:9090
+              isDefault: true
+              editable: true
 
-          [Service]
-          User=root
-          ExecStart=/usr/local/bin/node_exporter
-          Restart=always
-
-          [Install]
-          WantedBy=multi-user.target
-
-    - name: Force systemd daemon-reload
+    - name: Enable and restart Grafana service
       systemd:
-        daemon_reload: yes
-
-    - name: Enable and start node_exporter service
-      systemd:
-        name: node_exporter
+        name: grafana-server
         state: restarted
         enabled: yes
+        daemon_reload: yes
+
