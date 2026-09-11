@@ -15,8 +15,8 @@
                   labels:
                     severity: critical
                   annotations:
-                    summary: "Node Exporter down on {{ $labels.instance }}"
-                    description: "{{ $labels.instance }} has been unreachable for more than 30 seconds."
+                    summary: "{% raw %}Node Exporter down on {{ $labels.instance }}{% endraw %}"
+                    description: "{% raw %}{{ $labels.instance }} has been unreachable for more than 30 seconds.{% endraw %}"
 
                 - alert: HighCpuLoad
                   expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 80
@@ -24,8 +24,8 @@
                   labels:
                     severity: warning
                   annotations:
-                    summary: "High CPU usage on {{ $labels.instance }}"
-                    description: "CPU utilization on {{ $labels.instance }} exceeded 80%."
+                    summary: "{% raw %}High CPU usage on {{ $labels.instance }}{% endraw %}"
+                    description: "{% raw %}CPU utilization on {{ $labels.instance }} exceeded 80%.{% endraw %}"
 
     - name: Update prometheus.yml to include rule_files
       copy:
